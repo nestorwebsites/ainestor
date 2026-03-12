@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nestor AI | Interface</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #fcfcfc;
+            --nestor-border: #007aff;
+            --user-blue: #007aff;
+            --text-dark: #070707;
+            --white: #ffffff;
+            --sidebar-bg: #f2f2f7;
+            --input-bg: #f2f2f7;
+        }
+
+        .dark-mode {
+            --bg-color: #1c1c1e;
+            --sidebar-bg: #000000;
+            --text-dark: #ffffff;
+            --white: #2c2c2e;
+            --input-bg: #3a3a3c;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-color); color: var(--text-dark); overflow: hidden;
+            transition: background 0.3s;
+        }
+
+        #nestor-app { display: flex; width: 100%; height: 100vh; }
+
+        .sidebar {
+            width: 260px; background: var(--sidebar-bg); border-right: 1px solid #3333;
+            display: flex; flex-direction: column; padding: 20px;
+        }
+
+        .new-chat-btn {
+            background: var(--nestor-border); color: white; border: none;
+            padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-item {
+            padding: 10px; border-radius: 8px; cursor: pointer; font-size: 0.9rem;
+            margin-bottom: 5px; background: rgba(0,0,0,0.05);
+        }
+        .sidebar-item:hover { background: rgba(0,0,0,0.1); }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg-color); }
+
+        .header {
+            padding: 20px; display: flex; flex-direction: column; align-items: center;
+            background: var(--bg-color); border-bottom: 1px solid #3333;
+        }
+
+        .nestor-avatar {
+            width: 60px; height: 60px; background: var(--white); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; font-weight: 600; border: 2px solid #3c1fa8;
+            cursor: pointer; transition: transform 0.2s;
+        }
+
+        #chat-container { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+
+        .message-frame { max-width: 80%; padding: 15px 20px; border-radius: 18px; line-height: 1.6; position: relative; }
+        .nestor-frame { align-self: flex-start; background: var(--white); border: 1px solid var(--nestor-border); }
+        .user-frame { align-self: flex-end; background: var(--user-blue); color: white; }
+
+        .input-area { padding: 25px; display: flex; justify-content: center; }
+        .input-wrap {
+            width: 100%; max-width: 800px; display: flex; align-items: center;
+            background: var(--input-bg); padding: 10px 18px; border-radius: 30px;
+        }
+
+        input { flex: 1; border: none; background: transparent; color: var(--text-dark); font-size: 1rem; outline: none; }
+
+        /* Animations */
+        @keyframes vibrate {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+        .thinking .nestor-avatar { animation: vibrate 0.12s linear infinite; }
+        .thinking-tag { color: var(--nestor-border); font-size: 0.75rem; font-weight: bold; margin-top: 8px; display: none; }
+        .thinking .thinking-tag { display: block; }
+
+        /* Image Handling */
+        .image-wrapper { position: relative; display: inline-block; margin-top: 10px; }
+        .image-wrapper img { max-width: 100%; border-radius: 12px; display: block; }
+        .download-btn {
+            position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.7);
+            color: white; border: none; padding: 5px 10px; border-radius: 6px;
+            font-size: 0.7rem; cursor: pointer; backdrop-filter: blur(4px); text-decoration: none;
+        }
+        .plus-btn {
+            background: none; border: none; color: var(--nestor-border);
+            font-size: 1.5rem; font-weight: bold; cursor: pointer; padding: 0 15px;
+        }
+    </style>
+</head>
+<body id="nestor-app-root">
+
+<div id="nestor-app">
+    <div class="sidebar">
+        <button class="new-chat-btn" onclick="createNewChat()">+ New Chat</button>
+        <div class="sidebar-item" onclick="toggleDarkMode()">🌙 Toggle Dark Mode</div>
+        <div class="sidebar-item" onclick="clearAllData()">🗑️ Delete All History</div>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <div class="nestor-avatar" onclick="refreshView()">N</div>
+            <div style="margin-top: 8px; font-weight: 600; font-size: 0.9rem;">NESTOR CHATBOT AI</div>
+            <div class="thinking-tag">Nestor is Thinking Harder...</div>
+        </div>
+
+        <div id="chat-container"></div>
+
+        <div class="input-area">
+            <div class="input-wrap">
+                <input type="file" id="file-in" style="display: none;" onchange="handleFileUpload(this)" accept="image/*">
+                <button type="button" class="plus-btn" onclick="document.getElementById('file-in').click()">+</button>
+                <input type="text" id="user-in" placeholder="Inquire here..." autofocus>
+                <button style="background:none; border:none; color:var(--nestor-border); font-weight:bold; cursor:pointer;" onclick="askNestor()">Ask Nestor</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const container = document.getElementById('chat-container');
+    const input = document.getElementById('user-in');
+    const appRoot = document.getElementById('nestor-app-root');
+    let attachedImageBase64 = null;
+
+    let chatHistory = JSON.parse(localStorage.getItem('nestor_history')) || [
+        { role: "system", content: "You are a versatile AI assistant created by BYIRINGIRO FILS Nestor." }
+    ];
+
+    window.onload = () => {
+        chatHistory.forEach(msg => {
+            if(msg.role !== 'system') {
+                const isImg = msg.content.startsWith('data:image');
+                renderMessage(msg.content, msg.role === 'user' ? 'user' : 'nestor', isImg);
+            }
+        });
+        if(chatHistory.length <= 1) {
+            renderMessage("Hello! I'm Nestor.Feel free to ask any question.", 'nestor');
+        }
+    };
+
+    function renderMessage(text, type, isImage = false) {
+        const div = document.createElement('div');
+        div.className = `message-frame ${type}-frame`;
+        if (isImage) {
+            div.innerHTML = `<div class="image-wrapper"><img src="${text}"><a href="${text}" download="Nestor_AI.png" class="download-btn">Download ⬇</a></div>`;
+        } else {
+            div.innerHTML = type === 'nestor' ? marked.parse(text) : text;
+        }
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+        return div;
+    }
+
+    function handleFileUpload(inputElement) {
+        const file = inputElement.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            attachedImageBase64 = e.target.result.split(',')[1];
+            renderMessage(e.target.result, 'user', true);
+            chatHistory.push({ role: "user", content: e.target.result });
+            localStorage.setItem('nestor_history', JSON.stringify(chatHistory));
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async function askNestor() {
+        const query = input.value.trim();
+        if (!query && !attachedImageBase64) return;
+
+        input.value = "";
+        if (query) renderMessage(query, 'user');
+        
+        appRoot.classList.add('thinking');
+        const responseFrame = renderMessage('', 'nestor');
+
+        try {
+            const response = await fetch('http://localhost:3000/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    messages: chatHistory, 
+                    imageBase64: attachedImageBase64,
+                    query: query 
+                })
+            });
+            const data = await response.json();
+            
+            attachedImageBase64 = null;
+            appRoot.classList.remove('thinking');
+            
+            typeMessage(data.reply, responseFrame);
+            
+            if (query) chatHistory.push({ role: "user", content: query });
+            chatHistory.push({ role: "assistant", content: data.reply });
+            localStorage.setItem('nestor_history', JSON.stringify(chatHistory));
+        } catch (err) {
+            appRoot.classList.remove('thinking');
+            responseFrame.textContent = "Error: Run 'node server.js' in your terminal.";
+        }
+    }
+
+    function typeMessage(text, element) {
+        let index = 0; let current = "";
+        let itv = setInterval(() => {
+            if (index < text.length) {
+                current += text[index++];
+                element.innerHTML = marked.parse(current);
+                container.scrollTop = container.scrollHeight;
+            } else { clearInterval(itv); }
+        }, 12);
+    }
+
+    function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
+    function refreshView() { container.innerHTML = ""; renderMessage("View refreshed.", "nestor"); }
+    function createNewChat() { if(confirm("New chat?")) { localStorage.removeItem('nestor_history'); location.reload(); } }
+    function clearAllData() { if(confirm("Delete all?")) { localStorage.clear(); location.reload(); } }
+    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') askNestor(); });
+</script>
+</body>
+</html>
